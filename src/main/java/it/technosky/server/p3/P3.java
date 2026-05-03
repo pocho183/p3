@@ -8,6 +8,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
 import org.springframework.boot.autoconfigure.sql.init.SqlInitializationAutoConfiguration;
@@ -40,6 +41,7 @@ public class P3 {
 	}
 	
 	@Bean
+	@ConditionalOnProperty(name = "tls.enabled", havingValue = "true")
     public SSLContext sslContext(TLSContextFactory factory) {
         try {
             return factory.create(keystorePath, keystorePassword, truststorePath, truststorePassword, false, null/*, tlsRevocationEnabled, parsePolicyOids(tlsRequiredPolicyOids)

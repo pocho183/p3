@@ -1,4 +1,4 @@
-package it.technosky.server.p3.channel;
+package it.technosky.server.p3.service;
 
 import java.util.Date;
 
@@ -6,16 +6,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import it.technosky.server.p3.address.X400AddressBuilder;
+import it.technosky.server.p3.channel.X400MessageRequest;
 import it.technosky.server.p3.domain.AMHSMessage;
 import it.technosky.server.p3.domain.AMHSPriority;
 import it.technosky.server.p3.domain.AMHSProfile;
-import it.technosky.server.p3.service.MTAService;
 
 @Service
 public class X400MessageService {
 
     private final MTAService mtaService;
     private final X400AddressBuilder addressBuilder;
+
+    public static final String DEFAULT_CHANNEL_NAME = "ATFM";
 
     public X400MessageService(MTAService mtaService, X400AddressBuilder addressBuilder) {
         this.mtaService = mtaService;
@@ -61,7 +63,7 @@ public class X400MessageService {
             AMHSProfile.P3,
             request.priority() == null ? AMHSPriority.GG : request.priority(),
             request.p3Subject(),
-            StringUtils.hasText(request.channel()) ? request.channel() : AMHSChannelService.DEFAULT_CHANNEL_NAME,
+            StringUtils.hasText(request.channel()) ? request.channel() : DEFAULT_CHANNEL_NAME,
             request.certificateCn(),
             request.certificateOu(),
             new Date(),

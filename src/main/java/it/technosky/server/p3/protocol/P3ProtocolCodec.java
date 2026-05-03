@@ -18,8 +18,6 @@ public class P3ProtocolCodec {
 
     private static final Logger logger = LoggerFactory.getLogger(P3ProtocolCodec.class);
 
-    private static final int MIN_REASONABLE_P3_APDU_LEN = 16;
-
     private final P3BindCodec bindCodec;
     private final P3SubmitCodec submitCodec;
     private final P3ReleaseCodec releaseCodec;

@@ -30,7 +30,6 @@ import javax.net.ssl.SSLServerSocket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import it.technosky.server.p3.acse.AcseAssociationProtocol;
@@ -44,7 +43,6 @@ import it.technosky.server.p3.protocol.rfc1006.CotpConnectionTpdu;
 
 
 @Component
-@ConditionalOnProperty(prefix = "amhs.p3.gateway", name = "enabled", havingValue = "true")
 public class P3GatewayServer {
 
     private static final Logger logger = LoggerFactory.getLogger(P3GatewayServer.class);
@@ -63,9 +61,6 @@ public class P3GatewayServer {
     private static final int TAG_CLASS_APPLICATION = 1;
     private static final int TAG_CLASS_CONTEXT = 2;
 
-    private static final int GATEWAY_APDU_MIN_TAG = 0;
-    private static final int GATEWAY_APDU_MAX_TAG = 12;
-
     private static final int PRESENTATION_MODE_SELECTOR_TAG = 0;
     private static final int PRESENTATION_NORMAL_MODE_PARAMETERS_TAG = 2;
     private static final int PRESENTATION_CP_CONTEXT_DEFINITION_LIST_TAG = 4;
@@ -75,11 +70,8 @@ public class P3GatewayServer {
 
     private final String host;
     private final int port;
-    private final boolean tlsEnabled;
-    private final boolean needClientAuth;
     private final boolean textWelcomeEnabled;
     private final ListenerProfile listenerProfile;
-    private final SSLContext tls;
     private final P3GatewaySessionService sessionService;
     private final P3ProtocolCodec p3ProtocolCodec;
     private final P22ProtocolCodec p22ProtocolCodec;
@@ -88,13 +80,12 @@ public class P3GatewayServer {
     private final AtomicLong connectionSequence = new AtomicLong(0);
 
     public P3GatewayServer(
-        @Value("${amhs.p3.gateway.host:0.0.0.0}") String host,
-        @Value("${amhs.p3.gateway.port:102}") int port,
-        @Value("${amhs.p3.gateway.max-sessions:64}") int maxSessions,
-        @Value("${amhs.p3.gateway.tls.enabled:false}") boolean tlsEnabled,
-        @Value("${amhs.p3.gateway.tls.need-client-auth:false}") boolean needClientAuth,
-        @Value("${amhs.p3.gateway.text.welcome-enabled:false}") boolean textWelcomeEnabled,
-        @Value("${amhs.p3.gateway.listener-profile:STANDARD_P3}") String listenerProfile,
+        @Value("${p3.gateway.host}") String host,
+        @Value("${p3.gateway.port}") int port,
+        @Value("${p3.gateway.max-sessions}") int maxSessions,
+        @Value("${p3.gateway.tls.need-client-auth}") boolean needClientAuth,
+        @Value("${p3.gateway.text.welcome-enabled}") boolean textWelcomeEnabled,
+        @Value("${p3.gateway.listener-profile}") String listenerProfile,
         SSLContext tls,
         P3GatewaySessionService sessionService,
         P3ProtocolCodec p3ProtocolCodec,
@@ -102,43 +93,24 @@ public class P3GatewayServer {
         AcseAssociationProtocol acseAssociationProtocol
     ) {
         if (port < 1 || port > 65_535) {
-            throw new IllegalArgumentException("amhs.p3.gateway.port out of range: " + port);
+            throw new IllegalArgumentException("p3.gateway.port out of range: " + port);
         }
         if (maxSessions < 1) {
-            throw new IllegalArgumentException("amhs.p3.gateway.max-sessions must be >= 1");
+            throw new IllegalArgumentException("p3.gateway.max-sessions must be >= 1");
         }
 
         this.host = host;
         this.port = port;
-        this.tlsEnabled = tlsEnabled;
-        this.needClientAuth = needClientAuth;
         this.textWelcomeEnabled = textWelcomeEnabled;
         this.listenerProfile = ListenerProfile.from(listenerProfile);
-        this.tls = tls;
         this.sessionService = sessionService;
         this.p3ProtocolCodec = p3ProtocolCodec;
         this.p22ProtocolCodec = p22ProtocolCodec;
         this.acseAssociationProtocol = acseAssociationProtocol;
         this.clientExecutor = Executors.newFixedThreadPool(maxSessions, new NamedDaemonThreadFactory());
-
-        logger.info(
-            "AMHS P3 gateway listener-profile={} supported={}",
-            this.listenerProfile,
-            this.listenerProfile.supportedProtocolsSummary()
-        );
     }
 
     public void start() throws Exception {
-        if (tlsEnabled) {
-            SSLServerSocket server = (SSLServerSocket) tls.getServerSocketFactory()
-                .createServerSocket(port, 50, InetAddress.getByName(host));
-            server.setEnabledProtocols(new String[] { "TLSv1.3", "TLSv1.2" });
-            server.setNeedClientAuth(needClientAuth);
-            logger.info("AMHS P3 gateway TLS server listening on {}:{}", host, port);
-            acceptLoop(server);
-            return;
-        }
-
         ServerSocket server = new ServerSocket(port, 50, InetAddress.getByName(host));
         logger.info("AMHS P3 gateway clear transport server listening on {}:{}", host, port);
         acceptLoop(server);

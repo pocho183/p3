@@ -31,13 +31,13 @@ public class P3SubmitCodec {
     private static final DateTimeFormatter X400_LOCAL_ID_TIME_FORMAT = DateTimeFormatter.ofPattern("yyMMddHHmmss'Z'").withZone(ZoneOffset.UTC);
     private static final DateTimeFormatter X400_SUBMISSION_TIME_FORMAT = DateTimeFormatter.ofPattern("yyMMddHHmm'Z'").withZone(ZoneOffset.UTC);
     
-    @Value("${amhs.p3.mts.local-id.country}")
+    @Value("${p3.mts.local-id.country}")
     private String localIdCountry;
-    @Value("${amhs.p3.mts.local-id.city}")
+    @Value("${p3.mts.local-id.city}")
     private String localIdCity;
-    @Value("${amhs.p3.mts.local-id.node}")
+    @Value("${p3.mts.local-id.node}")
     private String localIdNode;
-    @Value("${amhs.p3.mts.local-id.sequence}")
+    @Value("${p3.mts.local-id.sequence}")
     private String localIdSequence;
     
     public boolean isLikelySubmitRequest(byte[] encodedApdu) {
