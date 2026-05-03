@@ -1,4 +1,4 @@
-package it.technosky.server.p3.compliance;
+package it.technosky.server.p3.security;
 
 import java.util.Arrays;
 import java.util.LinkedHashSet;
@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
-import it.technosky.server.p3.protocol.ExtensibilityContainers.SecurityParameters;
+import it.technosky.server.p3.asn1.ExtensibilityContainers.SecurityParameters;
 
 
 @Component

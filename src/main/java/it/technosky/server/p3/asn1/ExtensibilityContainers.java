@@ -1,11 +1,8 @@
-package it.technosky.server.p3.protocol;
+package it.technosky.server.p3.asn1;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-import it.technosky.server.p3.asn1.BerCodec;
-import it.technosky.server.p3.asn1.BerTlv;
 
 public final class ExtensibilityContainers {
 

@@ -1,15 +1,14 @@
-package it.technosky.server.p3.service;
+package it.technosky.server.p3.x400;
 
 import java.util.Date;
 
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import it.technosky.server.p3.address.X400AddressBuilder;
-import it.technosky.server.p3.channel.X400MessageRequest;
 import it.technosky.server.p3.domain.AMHSMessage;
 import it.technosky.server.p3.domain.AMHSPriority;
 import it.technosky.server.p3.domain.AMHSProfile;
+import it.technosky.server.p3.service.MTAService;
 
 @Service
 public class X400MessageService {

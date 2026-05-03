@@ -1,3 +1,8 @@
-.DS_Store
+/.gradle/
+/bin/
+/.metadata/
 .classpath
-/bin/*
+.DS_Store
+.settings
+.project
+p3.pid

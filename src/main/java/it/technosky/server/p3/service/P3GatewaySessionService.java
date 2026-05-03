@@ -1,4 +1,4 @@
-package it.technosky.server.p3.protocol;
+package it.technosky.server.p3.service;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -16,14 +16,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import it.technosky.server.p3.address.ORAddress;
-import it.technosky.server.p3.channel.RelayRoutingService;
-import it.technosky.server.p3.channel.RelayRoutingService.AMHSMessageEnvelope;
-import it.technosky.server.p3.channel.X400MessageRequest;
-import it.technosky.server.p3.compliance.AMHSComplianceValidator;
-import it.technosky.server.p3.compliance.SecurityLabelPolicy;
-import it.technosky.server.p3.domain.AMHSDeliveryReport;
+import it.technosky.server.p3.domain.AMHSComplianceValidator;
 import it.technosky.server.p3.domain.AMHSMessage;
-import it.technosky.server.p3.service.X400MessageService;
+import it.technosky.server.p3.security.SecurityLabelPolicy;
+import it.technosky.server.p3.service.RelayRoutingService.AMHSMessageEnvelope;
+import it.technosky.server.p3.x400.X400MessageRequest;
+import it.technosky.server.p3.x400.X400MessageService;
 
 @Service
 public class P3GatewaySessionService {

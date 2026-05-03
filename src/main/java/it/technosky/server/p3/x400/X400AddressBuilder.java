@@ -1,4 +1,4 @@
-package it.technosky.server.p3.address;
+package it.technosky.server.p3.x400;
 
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -6,6 +6,8 @@ import java.util.Map;
 
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+
+import it.technosky.server.p3.address.ORAddress;
 
 @Component
 public class X400AddressBuilder {

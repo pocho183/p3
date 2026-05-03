@@ -1,4 +1,4 @@
-package it.technosky.server.p3.service;
+package it.technosky.server.p3.domain;
 
 import java.util.Date;
 import java.util.EnumMap;
@@ -7,9 +7,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.springframework.stereotype.Service;
-
-import it.technosky.server.p3.domain.AMHSMessage;
-import it.technosky.server.p3.domain.AMHSMessageState;
 
 @Service
 public class AMHSMessageStateMachine {

@@ -1,4 +1,4 @@
-package it.technosky.server.p3.protocol.rfc1006;
+package it.technosky.server.p3.network.rfc1006;
 
 import java.util.ArrayList;
 import java.util.Arrays;

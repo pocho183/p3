@@ -1,4 +1,4 @@
-package it.technosky.server.p3.channel;
+package it.technosky.server.p3.x400;
 
 import it.technosky.server.p3.domain.AMHSPriority;
 import jakarta.validation.constraints.NotBlank;

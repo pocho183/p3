@@ -1,4 +1,4 @@
-package it.technosky.server.p3.service;
+package it.technosky.server.p3.x411;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -9,8 +9,6 @@ import it.technosky.server.p3.address.ORNameMapper;
 import it.technosky.server.p3.asn1.BerCodec;
 import it.technosky.server.p3.asn1.BerTlv;
 import it.technosky.server.p3.domain.AMHSDeliveryStatus;
-import it.technosky.server.p3.x411.X411Diagnostic;
-import it.technosky.server.p3.x411.X411TagMap;
 
 /**
  * Minimal X.411-oriented report APDU encoder used to materialize a wire-level report structure

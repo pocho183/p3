@@ -12,6 +12,7 @@ import it.technosky.server.p3.protocol.P3OperationModels.P3Error;
 import it.technosky.server.p3.protocol.P3OperationModels.ReleaseResult;
 import it.technosky.server.p3.protocol.P3OperationModels.SubmitRequest;
 import it.technosky.server.p3.protocol.P3OperationModels.SubmitResult;
+import it.technosky.server.p3.service.P3GatewaySessionService;
 
 @Component
 public class P3ProtocolCodec {

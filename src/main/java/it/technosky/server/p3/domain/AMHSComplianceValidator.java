@@ -1,4 +1,4 @@
-package it.technosky.server.p3.compliance;
+package it.technosky.server.p3.domain;
 
 import java.util.Locale;
 import java.util.Set;
@@ -9,8 +9,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import it.technosky.server.p3.address.ORAddress;
-import it.technosky.server.p3.domain.AMHSChannel;
-import it.technosky.server.p3.domain.AMHSProfile;
 
 @Component
 public class AMHSComplianceValidator {

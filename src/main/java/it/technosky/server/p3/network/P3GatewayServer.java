@@ -36,10 +36,10 @@ import it.technosky.server.p3.acse.AcseAssociationProtocol;
 import it.technosky.server.p3.acse.AcseModels;
 import it.technosky.server.p3.asn1.BerCodec;
 import it.technosky.server.p3.asn1.BerTlv;
-import it.technosky.server.p3.protocol.P3GatewaySessionService;
+import it.technosky.server.p3.network.rfc1006.CotpConnectionTpdu;
 import it.technosky.server.p3.protocol.P3ProtocolCodec;
 import it.technosky.server.p3.protocol.p22.P22ProtocolCodec;
-import it.technosky.server.p3.protocol.rfc1006.CotpConnectionTpdu;
+import it.technosky.server.p3.service.P3GatewaySessionService;
 
 
 @Component

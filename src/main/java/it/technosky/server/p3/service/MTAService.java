@@ -8,8 +8,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import it.technosky.server.p3.compliance.AMHSComplianceValidator;
+import it.technosky.server.p3.domain.AMHSComplianceValidator;
 import it.technosky.server.p3.domain.AMHSMessage;
+import it.technosky.server.p3.domain.AMHSMessageStateMachine;
 import it.technosky.server.p3.domain.AMHSPriority;
 import it.technosky.server.p3.domain.AMHSProfile;
 import it.technosky.server.p3.x411.X411DiagnosticMapper;
