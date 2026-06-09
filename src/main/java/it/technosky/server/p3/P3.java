@@ -28,10 +28,6 @@ public class P3 {
     private String truststorePath;
     @Value("${tls.truststore.password:}")
     private String truststorePassword;
-    @Value("${tls.pkix.revocation-enabled:false}")
-    private boolean tlsRevocationEnabled;
-    @Value("${tls.pkix.required-policy-oids:}")
-    private String tlsRequiredPolicyOids;
 	
 	public static void main(String[] args) {
 		SpringApplication app = new SpringApplication(P3.class);
@@ -44,23 +40,11 @@ public class P3 {
 	@ConditionalOnProperty(name = "tls.enabled", havingValue = "true")
     public SSLContext sslContext(TLSContextFactory factory) {
         try {
-            return factory.create(keystorePath, keystorePassword, truststorePath, truststorePassword, false, null/*, tlsRevocationEnabled, parsePolicyOids(tlsRequiredPolicyOids)
-            */);
+            return factory.create(keystorePath, keystorePassword, truststorePath, truststorePassword);
         } catch (Exception e) {
             throw new RuntimeException("Failed to create SSLContext", e);
         }
     }
-	
-	/*
-	private java.util.Set<String> parsePolicyOids(String csv) {
-        if (csv == null || csv.isBlank()) {
-            return java.util.Set.of();
-        }
-        return java.util.Arrays.stream(csv.split(","))
-            .map(String::trim)
-            .filter(value -> !value.isEmpty())
-            .collect(java.util.stream.Collectors.toSet());
-    }*/
 	
 	@Bean
     public CommandLineRunner startServer(ObjectProvider<P3GatewayServer> p3GatewayServerProvider) {

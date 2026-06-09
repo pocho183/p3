@@ -98,30 +98,48 @@ public class P3SubmitCodec {
         throw new IllegalArgumentException("Not a submit request APDU");
     }
     
+    
+    
+    // TODO
+    // RENDERE DINAMICO !!!
+	/*
+	 * private String extractBodyText(BerTlv root) { List<String> texts = new
+	 * ArrayList<>(); collectBodyText(root, texts);
+	 * 
+	 * return texts.stream() .filter(s -> s.length() > 8) .filter(s ->
+	 * !s.startsWith("KH")) .filter(s -> !s.equals("ICAO")) .filter(s ->
+	 * !s.equals("Local")) .filter(s -> !s.equals("technosky")) .filter(s ->
+	 * !s.startsWith("VDTI")) .reduce((a, b) -> a.length() >= b.length() ? a : b)
+	 * .orElse("");
+	 *}*/
+    
     private String extractBodyText(BerTlv root) {
         List<String> texts = new ArrayList<>();
         collectBodyText(root, texts);
-
         return texts.stream()
-            .filter(s -> s.length() > 8)
-            .filter(s -> !s.startsWith("KH"))
-            .filter(s -> !s.equals("ICAO"))
-            .filter(s -> !s.equals("Local"))
-            .filter(s -> !s.equals("technosky"))
-            .filter(s -> !s.startsWith("VDTI"))
-            .reduce((a, b) -> a.length() >= b.length() ? a : b)
-            .orElse("");
+            .map(String::trim).filter(s -> !s.isBlank()).filter(this::looksLikeBodyText)
+            .max(java.util.Comparator.comparingInt(String::length)).orElse("");
+    }
+    
+    private boolean looksLikeBodyText(String text) {
+        if (text.length() < 10)
+            return false;
+        // Reject OR-address fragments
+        if (text.startsWith("/C=") || text.startsWith("/ADMD="))
+            return false;
+        // Reject all-uppercase routing identifiers
+        if (text.matches("[A-Z0-9]{2,12}"))
+            return false;
+        return true;
     }
 
     private void collectBodyText(BerTlv node, List<String> out) {
         if (node == null) {
             return;
         }
-
         try {
             if (!node.constructed()) {
                 int tag = node.tagNumber();
-
                 // UTF8String, PrintableString, IA5String, VisibleString, GeneralString
                 if (tag == 12 || tag == 19 || tag == 22 || tag == 26 || tag == 27) {
                     String text = new String(node.value(), java.nio.charset.StandardCharsets.UTF_8).trim();
@@ -129,7 +147,6 @@ public class P3SubmitCodec {
                         out.add(text);
                     }
                 }
-
                 // OCTET STRING may contain nested BER body content
                 if (tag == 4 && node.value() != null && node.value().length > 2) {
                     try {
@@ -142,10 +159,8 @@ public class P3SubmitCodec {
                         }
                     }
                 }
-
                 return;
             }
-
             for (BerTlv child : BerCodec.decodeAll(node.value())) {
                 collectBodyText(child, out);
             }

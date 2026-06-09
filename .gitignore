@@ -1,5 +1,6 @@
 /.gradle/
 /bin/
+/build/
 /.metadata/
 .classpath
 .DS_Store

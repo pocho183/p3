@@ -120,13 +120,7 @@ public class P3GatewayServer {
         while (true) {
             Socket socket = server.accept();
             long connectionId = connectionSequence.incrementAndGet();
-            logger.info(
-                "P3 gateway connection #{} from {}:{} to local-port={}",
-                connectionId,
-                socket.getInetAddress(),
-                socket.getPort(),
-                socket.getLocalPort()
-            );
+            logger.info("P3 gateway connection #{} from {}:{} to local-port={}", connectionId, socket.getInetAddress(), socket.getPort(), socket.getLocalPort());
             clientExecutor.execute(() -> handleClient(connectionId, socket));
         }
     }
