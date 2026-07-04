@@ -98,21 +98,6 @@ public class P3SubmitCodec {
         throw new IllegalArgumentException("Not a submit request APDU");
     }
     
-    
-    
-    // TODO
-    // RENDERE DINAMICO !!!
-	/*
-	 * private String extractBodyText(BerTlv root) { List<String> texts = new
-	 * ArrayList<>(); collectBodyText(root, texts);
-	 * 
-	 * return texts.stream() .filter(s -> s.length() > 8) .filter(s ->
-	 * !s.startsWith("KH")) .filter(s -> !s.equals("ICAO")) .filter(s ->
-	 * !s.equals("Local")) .filter(s -> !s.equals("technosky")) .filter(s ->
-	 * !s.startsWith("VDTI")) .reduce((a, b) -> a.length() >= b.length() ? a : b)
-	 * .orElse("");
-	 *}*/
-    
     private String extractBodyText(BerTlv root) {
         List<String> texts = new ArrayList<>();
         collectBodyText(root, texts);
@@ -186,7 +171,7 @@ public class P3SubmitCodec {
                 int cls = child.tagClass();
                 int tag = child.tagNumber();
 
-                // From your BER:
+                // From BER:
                 // 61 -> C
                 // 62 -> ADMD
                 // A2 -> PRMD
@@ -327,21 +312,8 @@ public class P3SubmitCodec {
     	    )
     	);
 
-        byte[] mtsResultValue = concat(List.of(
-            messageSubmissionIdentifier,
-            messageSubmissionTime
-        ));
-
-        return BerCodec.encode(
-            new BerTlv(
-                TAG_CLASS_UNIVERSAL,
-                true,
-                17,
-                0,
-                mtsResultValue.length,
-                mtsResultValue
-            )
-        );
+        byte[] mtsResultValue = concat(List.of(messageSubmissionIdentifier, messageSubmissionTime));
+        return BerCodec.encode(new BerTlv(TAG_CLASS_UNIVERSAL, true, 17, 0, mtsResultValue.length, mtsResultValue));
     }
     
     private String buildLocalIdentifier(String timestamp) {

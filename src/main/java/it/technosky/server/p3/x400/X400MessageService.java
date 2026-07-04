@@ -60,7 +60,7 @@ public class X400MessageService {
             request.body(),
             request.messageId(),
             AMHSProfile.P3,
-            request.priority() == null ? AMHSPriority.GG : request.priority(),
+            request.priority() == null ? AMHSPriority.NORMAL : request.priority(),
             request.p3Subject(),
             StringUtils.hasText(request.channel()) ? request.channel() : DEFAULT_CHANNEL_NAME,
             request.certificateCn(),

@@ -106,7 +106,7 @@ public class MTAService {
         message.setRecipient(normalizeUpper(to));
         message.setBody(normalize(body));
         message.setProfile(profile);
-        message.setPriority(priority == null ? AMHSPriority.GG : priority);
+        message.setPriority(priority == null ? AMHSPriority.NORMAL : priority);
         message.setSubject(normalize(subject));
         message.setChannelName(normalize(channelName));
         message.setCertificateCn(normalize(certificateCn));
