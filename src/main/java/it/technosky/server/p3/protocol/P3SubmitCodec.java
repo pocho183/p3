@@ -17,6 +17,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +29,7 @@ import org.springframework.util.StringUtils;
 import it.technosky.server.p3.address.ORAddress;
 import it.technosky.server.p3.asn1.BerCodec;
 import it.technosky.server.p3.asn1.BerTlv;
+import it.technosky.server.p3.domain.AFTNPriority;
 import it.technosky.server.p3.domain.AMHSPriority;
 import it.technosky.server.p3.protocol.P3OperationModels.P3Error;
 import it.technosky.server.p3.protocol.P3OperationModels.SubmitRequest;
@@ -43,6 +46,10 @@ public class P3SubmitCodec {
     private static final int ERROR_TAG = 8;
     private static final DateTimeFormatter X400_LOCAL_ID_TIME_FORMAT = DateTimeFormatter.ofPattern("yyMMddHHmmss'Z'").withZone(ZoneOffset.UTC);
     private static final DateTimeFormatter X400_SUBMISSION_TIME_FORMAT = DateTimeFormatter.ofPattern("yyMMddHHmm'Z'").withZone(ZoneOffset.UTC);
+    private static final Pattern AFTN_PRIORITY_LINE = Pattern.compile("^(SS|GG|KK|FF|DD)(?:\\s+|$)");
+    private static final Pattern AFTN_FILING_TIME_LINE = Pattern.compile("^((?:0[1-9]|[12]\\d|3[01])(?:[01]\\d|2[0-3])[0-5]\\d)(?:\\s+[A-Z]{8})(?:\\s+.*)?$");
+
+    private record AftnHeader(AFTNPriority priority, String filingTime) { }
     
     @Value("${p3.mts.local-id.country}")
     private String localIdCountry;
@@ -86,6 +93,8 @@ public class P3SubmitCodec {
             return new SubmitRequest(value(fields.get(0)), value(fields.get(1)), value(fields.get(2)), encodedApdu);
         }
         if (apdu.tagClass() == TAG_CLASS_UNIVERSAL && apdu.constructed() && apdu.tagNumber() == 16) {
+        	
+        	/** Managing AMHS Priority **/
         	AMHSPriority priority = extractAmhsPriority(apdu);
         	logger.info( "AMHS submission priority={} value={}", priority.label(), priority.value() );
             List<String> orAddresses = new ArrayList<>();
@@ -93,6 +102,13 @@ public class P3SubmitCodec {
             String recipient = orAddresses.size() >= 2 ? orAddresses.get(1) : "";
             String subject = "";
             String body = extractBodyText(apdu);
+            
+            /** Managing AFTN Priority + Filing time **/
+            AftnHeader aftnHeader = extractAftnHeader(body);
+            if (aftnHeader.priority() != null)
+                logger.info("AFTN priority={}", aftnHeader.priority() );
+            if (aftnHeader.filingTime() != null)
+                logger.info("AFTN filing time={} format=DDHHMM UTC", aftnHeader.filingTime() );
             return new SubmitRequest(recipient, subject, body, encodedApdu);
         }
         throw new IllegalArgumentException("Not a submit request APDU");
@@ -133,6 +149,38 @@ public class P3SubmitCodec {
             return AMHSPriority.UNKNOWN;
         }
         return AMHSPriority.NORMAL;
+    }
+    
+    private AftnHeader extractAftnHeader(String body) {
+        if (!StringUtils.hasText(body))
+            return new AftnHeader(null, null);
+        AFTNPriority priority = null;
+        String filingTime = null;
+        String[] lines = body.split("\\R");
+        /* AFTN header information should be near the beginning of the message.
+         * Limiting the scan also reduces the chance of matching message content. */
+        int linesToInspect = Math.min(lines.length, 10);
+        for (int i = 0; i < linesToInspect; i++) {
+            String line = lines[i].trim();
+            if (line.isEmpty())
+                continue;
+            if (priority == null) {
+                Matcher priorityMatcher = AFTN_PRIORITY_LINE.matcher(line);
+                if (priorityMatcher.find()) {
+                    try {
+                        priority = AFTNPriority.valueOf(priorityMatcher.group(1));
+                    } catch (IllegalArgumentException ignored) { }
+                }
+            }
+            if (filingTime == null) {
+                Matcher filingTimeMatcher = AFTN_FILING_TIME_LINE.matcher(line);
+                if (filingTimeMatcher.matches())
+                    filingTime = filingTimeMatcher.group(1);
+            }
+            if (priority != null && filingTime != null)
+                break;
+        }
+        return new AftnHeader(priority, filingTime);
     }
     
     private String extractBodyText(BerTlv root) {
