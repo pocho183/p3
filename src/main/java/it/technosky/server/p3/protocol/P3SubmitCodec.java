@@ -1,5 +1,13 @@
 package it.technosky.server.p3.protocol;
 
+import static it.technosky.server.p3.protocol.P3WireSupport.TAG_CLASS_APPLICATION;
+import static it.technosky.server.p3.protocol.P3WireSupport.TAG_CLASS_CONTEXT;
+import static it.technosky.server.p3.protocol.P3WireSupport.TAG_CLASS_UNIVERSAL;
+import static it.technosky.server.p3.protocol.P3WireSupport.collectTextualAtoms;
+import static it.technosky.server.p3.protocol.P3WireSupport.concat;
+import static it.technosky.server.p3.protocol.P3WireSupport.decodeContextFieldList;
+import static it.technosky.server.p3.protocol.P3WireSupport.encodeUtf8ContextField;
+
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -10,6 +18,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -17,15 +27,18 @@ import org.springframework.util.StringUtils;
 import it.technosky.server.p3.address.ORAddress;
 import it.technosky.server.p3.asn1.BerCodec;
 import it.technosky.server.p3.asn1.BerTlv;
+import it.technosky.server.p3.domain.AMHSPriority;
 import it.technosky.server.p3.protocol.P3OperationModels.P3Error;
 import it.technosky.server.p3.protocol.P3OperationModels.SubmitRequest;
 import it.technosky.server.p3.protocol.P3OperationModels.SubmitResult;
 
-import static it.technosky.server.p3.protocol.P3WireSupport.*;
-
 @Component
 public class P3SubmitCodec {
 
+
+    private static final Logger logger = LoggerFactory.getLogger(P3SubmitCodec.class);
+	
+    private static final int AMHS_PRIORITY_APPLICATION_TAG = 7;
     private static final int SUBMIT_REQUEST_TAG = 2;
     private static final int ERROR_TAG = 8;
     private static final DateTimeFormatter X400_LOCAL_ID_TIME_FORMAT = DateTimeFormatter.ofPattern("yyMMddHHmmss'Z'").withZone(ZoneOffset.UTC);
@@ -68,34 +81,58 @@ public class P3SubmitCodec {
 
     public SubmitRequest decodeSubmitRequest(byte[] encodedApdu) {
         BerTlv apdu = BerCodec.decodeSingle(encodedApdu);
-
-        if (apdu.tagClass() == TAG_CLASS_CONTEXT
-            && apdu.constructed()
-            && apdu.tagNumber() == SUBMIT_REQUEST_TAG) {
-
+        if (apdu.tagClass() == TAG_CLASS_CONTEXT && apdu.constructed() && apdu.tagNumber() == SUBMIT_REQUEST_TAG) {
             Map<Integer, String> fields = decodeContextUtf8Fields(apdu.value());
-
-            return new SubmitRequest(
-                value(fields.get(0)),
-                value(fields.get(1)),
-                value(fields.get(2)),
-                encodedApdu
-            );
+            return new SubmitRequest(value(fields.get(0)), value(fields.get(1)), value(fields.get(2)), encodedApdu);
         }
-
-        if (apdu.tagClass() == TAG_CLASS_UNIVERSAL
-            && apdu.constructed()
-            && apdu.tagNumber() == 16) {
-
+        if (apdu.tagClass() == TAG_CLASS_UNIVERSAL && apdu.constructed() && apdu.tagNumber() == 16) {
+        	AMHSPriority priority = extractAmhsPriority(apdu);
+        	logger.info( "AMHS submission priority={} value={}", priority.label(), priority.value() );
             List<String> orAddresses = new ArrayList<>();
             collectOrAddresses(apdu, orAddresses);
-
             String recipient = orAddresses.size() >= 2 ? orAddresses.get(1) : "";
             String subject = "";
             String body = extractBodyText(apdu);
             return new SubmitRequest(recipient, subject, body, encodedApdu);
         }
         throw new IllegalArgumentException("Not a submit request APDU");
+    }
+    
+    private AMHSPriority extractAmhsPriority(BerTlv submitArgument) {
+        if (submitArgument == null || submitArgument.tagClass() != TAG_CLASS_UNIVERSAL || submitArgument.tagNumber() != 16 || !submitArgument.constructed())
+            return AMHSPriority.UNKNOWN;
+        List<BerTlv> argumentFields;
+        try {
+            argumentFields = BerCodec.decodeAll(submitArgument.value());
+        } catch (RuntimeException ex) {
+            logger.warn("Unable to decode MessageSubmissionArgument", ex);
+            return AMHSPriority.UNKNOWN;
+        }
+        BerTlv envelope = argumentFields.stream()
+            .filter(field -> field.tagClass() == TAG_CLASS_UNIVERSAL && field.tagNumber() == 17 && 
+            field.constructed()).findFirst().orElse(null);
+        if (envelope == null) {
+            logger.warn("MessageSubmissionEnvelope was not found");
+            return AMHSPriority.UNKNOWN;
+        }
+        try {
+            for (BerTlv field : BerCodec.decodeAll(envelope.value())) {
+                /* Priority ::= [APPLICATION 7] ENUMERATED { normal(0), non-urgent(1), urgent(2) } */
+                if (field.tagClass() == TAG_CLASS_APPLICATION && field.tagNumber() == AMHS_PRIORITY_APPLICATION_TAG && !field.constructed()) {
+                    byte[] value = field.value();
+                    if (value == null || value.length != 1) {
+                        logger.warn("Invalid AMHS priority encoding: expected one byte, got {}", value == null ? 0 : value.length);
+                        return AMHSPriority.UNKNOWN;
+                    }
+                    int numericValue = value[0] & 0xFF;
+                    return AMHSPriority.fromValue(numericValue);
+                }
+            }
+        } catch (RuntimeException ex) {
+            logger.warn("Unable to decode MessageSubmissionEnvelope", ex);
+            return AMHSPriority.UNKNOWN;
+        }
+        return AMHSPriority.NORMAL;
     }
     
     private String extractBodyText(BerTlv root) {
