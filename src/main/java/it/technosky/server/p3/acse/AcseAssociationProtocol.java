@@ -53,16 +53,13 @@ public class AcseAssociationProtocol {
         if (apdu.tagClass() != TAG_CLASS_APPLICATION || !apdu.constructed()) {
             throw new IllegalArgumentException("ACSE APDU must use APPLICATION class constructed encoding");
         }
-
         return switch (apdu.tagNumber()) {
             case AARQ_TAG -> decodeAarq(apdu.value());
             case AARE_TAG -> decodeAare(apdu.value());
             case RLRQ_TAG -> decodeRlrq(apdu.value());
             case RLRE_TAG -> decodeRlre(apdu.value());
             case ABRT_TAG -> decodeAbrt(apdu.value());
-            default -> throw new IllegalArgumentException(
-                "Unsupported ACSE APDU application tag [" + apdu.tagNumber() + "]"
-            );
+            default -> throw new IllegalArgumentException("Unsupported ACSE APDU application tag [" + apdu.tagNumber() + "]");
         };
     }
 
@@ -80,8 +77,7 @@ public class AcseAssociationProtocol {
                 .orElseGet(() ->
                     aarq.calledAeTitle()
                         .map(v -> encodeGraphicString(3, v))
-                        .orElse(new byte[0])
-                ),
+                        .orElse(new byte[0])),
 
             aarq.callingApTitle()
                 .map(v -> encodeApTitleField(6, v))
@@ -92,8 +88,7 @@ public class AcseAssociationProtocol {
                 .orElseGet(() ->
                     aarq.callingAeTitle()
                         .map(v -> encodeGraphicString(7, v))
-                        .orElse(new byte[0])
-                ),
+                        .orElse(new byte[0])),
 
             aarq.authenticationValue()
                 .map(v -> encodeOctetString(12, v))
@@ -130,8 +125,7 @@ public class AcseAssociationProtocol {
                 .orElseGet(() ->
                     aare.respondingAeTitle()
                         .map(v -> encodeGraphicString(5, v))
-                        .orElse(new byte[0])
-                ),
+                        .orElse(new byte[0])),
             encodeAarePresentationNegotiation(aare),
             aare.userInformation().map(v -> encodeUserInformation(30, v)).orElse(new byte[0])
         );
@@ -145,55 +139,37 @@ public class AcseAssociationProtocol {
         if (apTitle == null) {
             return new byte[0];
         }
-
         if (apTitle.isOidForm()) {
             return encodeOid(tagNumber, apTitle.objectIdentifier().orElseThrow());
         }
-
         if (apTitle.isRawBerForm()) {
             byte[] raw = apTitle.rawBerBytes();
             return BerCodec.encode(
                 new BerTlv(TAG_CLASS_CONTEXT, true, tagNumber, 0, raw.length, raw)
             );
         }
-
         throw new IllegalArgumentException("ACSE AP-title has no usable encoding");
     }
 
     private byte[] encodeAssociateResultExplicit(int tagNumber, int value) {
-        if (value < 0) {
+        if (value < 0)
             throw new IllegalArgumentException("ACSE associate result must be non-negative");
-        }
-
         byte[] integerValue = integerBytes(value);
-        byte[] integerTlv = BerCodec.encode(
-            new BerTlv(TAG_CLASS_UNIVERSAL, false, 2, 0, integerValue.length, integerValue)
-        );
-
-        return BerCodec.encode(
-            new BerTlv(TAG_CLASS_CONTEXT, true, tagNumber, 0, integerTlv.length, integerTlv)
-        );
+        byte[] integerTlv = BerCodec.encode(new BerTlv(TAG_CLASS_UNIVERSAL, false, 2, 0, integerValue.length, integerValue));
+        return BerCodec.encode(new BerTlv(TAG_CLASS_CONTEXT, true, tagNumber, 0, integerTlv.length, integerTlv));
     }
 
     private byte[] encodeSmallIntegerExplicit(int tagNumber, int value) {
-        if (value < 0) {
+        if (value < 0)
             throw new IllegalArgumentException("ACSE integer field must be non-negative");
-        }
-
         byte[] integerValue = integerBytes(value);
-        byte[] integerTlv = BerCodec.encode(
-            new BerTlv(TAG_CLASS_UNIVERSAL, false, 2, 0, integerValue.length, integerValue)
-        );
-
-        return BerCodec.encode(
-            new BerTlv(TAG_CLASS_CONTEXT, true, tagNumber, 0, integerTlv.length, integerTlv)
-        );
+        byte[] integerTlv = BerCodec.encode(new BerTlv(TAG_CLASS_UNIVERSAL, false, 2, 0, integerValue.length, integerValue));
+        return BerCodec.encode(new BerTlv(TAG_CLASS_CONTEXT, true, tagNumber, 0, integerTlv.length, integerTlv));
     }
 
     private byte[] encodeResultSourceDiagnosticExplicit(AcseModels.ResultSourceDiagnostic rsd) {
         int source = rsd.source();
         int diagnostic = rsd.diagnostic();
-
         int choiceTag;
         if (source == 1) {
             choiceTag = 1;
@@ -202,28 +178,16 @@ public class AcseAssociationProtocol {
         } else {
             throw new IllegalArgumentException("Unsupported ACSE result-source-diagnostic source: " + source);
         }
-
         byte[] diagnosticValue = integerBytes(diagnostic);
-        byte[] diagnosticInteger = BerCodec.encode(
-            new BerTlv(TAG_CLASS_UNIVERSAL, false, 2, 0, diagnosticValue.length, diagnosticValue)
-        );
-
-        byte[] choice = BerCodec.encode(
-            new BerTlv(TAG_CLASS_CONTEXT, true, choiceTag, 0, diagnosticInteger.length, diagnosticInteger)
-        );
-
-        return BerCodec.encode(
-            new BerTlv(TAG_CLASS_CONTEXT, true, 3, 0, choice.length, choice)
-        );
+        byte[] diagnosticInteger = BerCodec.encode(new BerTlv(TAG_CLASS_UNIVERSAL, false, 2, 0, diagnosticValue.length, diagnosticValue));
+        byte[] choice = BerCodec.encode(new BerTlv(TAG_CLASS_CONTEXT, true, choiceTag, 0, diagnosticInteger.length, diagnosticInteger));
+        return BerCodec.encode(new BerTlv(TAG_CLASS_CONTEXT, true, 3, 0, choice.length, choice));
     }
 
     private AcseModels.AARQApdu decodeAarq(byte[] payload) {
         List<BerTlv> fields = BerCodec.decodeAll(payload);
-
-        String appCtx = BerCodec.findOptional(fields, TAG_CLASS_CONTEXT, 1)
-            .map(this::decodeOid)
+        String appCtx = BerCodec.findOptional(fields, TAG_CLASS_CONTEXT, 1).map(this::decodeOid)
             .orElseThrow(() -> new IllegalArgumentException("AARQ is missing application-context-name [1]"));
-
         Optional<String> calledAe = Optional.empty();
         Optional<AcseModels.AeQualifier> calledQualifier = Optional.empty();
         Optional<BerTlv> calledField = BerCodec.findOptional(fields, TAG_CLASS_CONTEXT, 3);
@@ -231,12 +195,9 @@ public class AcseAssociationProtocol {
             if (isWrappedDirectoryString(calledField.get())) {
                 calledAe = Optional.of(decodeDirectoryString(calledField.get()));
             } else {
-                calledQualifier = Optional.of(
-                    new AcseModels.AeQualifier(decodeNonNegativeInteger(calledField.get()))
-                );
+                calledQualifier = Optional.of(new AcseModels.AeQualifier(decodeNonNegativeInteger(calledField.get())));
             }
         }
-
         Optional<String> callingAe = Optional.empty();
         Optional<AcseModels.AeQualifier> callingQualifier = Optional.empty();
         Optional<BerTlv> callingField = BerCodec.findOptional(fields, TAG_CLASS_CONTEXT, 7);
@@ -249,128 +210,74 @@ public class AcseAssociationProtocol {
                 );
             }
         }
-
         Optional<AcseModels.ApTitle> calledApTitle = BerCodec.findOptional(fields, TAG_CLASS_CONTEXT, 2)
             .map(v -> new AcseModels.ApTitle(decodeOid(v)));
-
         Optional<AcseModels.ApTitle> callingApTitle = BerCodec.findOptional(fields, TAG_CLASS_CONTEXT, 6)
             .map(v -> new AcseModels.ApTitle(decodeOid(v)));
-
         Optional<byte[]> authValue = BerCodec.findOptional(fields, TAG_CLASS_CONTEXT, 12)
             .map(this::decodeAuthenticationValue);
-
         Optional<byte[]> userInformation = BerCodec.findOptional(fields, TAG_CLASS_CONTEXT, 30)
             .map(this::decodeUserInformation);
-
         PresentationContextParseResult presentationContexts = BerCodec.findOptional(fields, TAG_CLASS_CONTEXT, 29)
             .map(this::decodePresentationContexts)
             .orElseGet(PresentationContextParseResult::empty);
-
-        return new AcseModels.AARQApdu(
-            appCtx,
-            callingAe,
-            calledAe,
-            callingApTitle,
-            callingQualifier,
-            calledApTitle,
-            calledQualifier,
-            authValue,
-            userInformation,
-            presentationContexts.abstractSyntaxOids(),
+        return new AcseModels.AARQApdu(appCtx, callingAe, calledAe, callingApTitle, callingQualifier,
+            calledApTitle, calledQualifier, authValue, userInformation, presentationContexts.abstractSyntaxOids(),
             presentationContexts.proposedContexts()
         );
     }
 
     private AcseModels.AAREApdu decodeAare(byte[] payload) {
         List<BerTlv> fields = BerCodec.decodeAll(payload);
-
         int result = BerCodec.findOptional(fields, TAG_CLASS_CONTEXT, 2)
             .map(this::decodeSmallInteger)
             .orElseThrow(() -> new IllegalArgumentException("AARE is missing result [2]"));
-
         Optional<AcseModels.ResultSourceDiagnostic> rsd =
             BerCodec.findOptional(fields, TAG_CLASS_CONTEXT, 3)
                 .map(this::decodeResultSourceDiagnostic);
-
         Optional<String> diagnostic =
             BerCodec.findOptional(fields, TAG_CLASS_CONTEXT, 10)
                 .map(this::decodeGraphicString);
-
-        if (diagnostic.isEmpty() && rsd.isPresent()) {
+        if (diagnostic.isEmpty() && rsd.isPresent())
             diagnostic = Optional.of("source=" + rsd.get().source() + ",diag=" + rsd.get().diagnostic());
-        }
-
-        Optional<AcseModels.ApTitle> respondingApTitle =
-        	    BerCodec.findOptional(fields, TAG_CLASS_CONTEXT, 4)
-        	        .map(this::decodeApTitleField);
-
+        Optional<AcseModels.ApTitle> respondingApTitle = BerCodec.findOptional(fields, TAG_CLASS_CONTEXT, 4).map(this::decodeApTitleField);
         Optional<String> respondingAeTitle = Optional.empty();
         Optional<AcseModels.AeQualifier> respondingAeQualifier = Optional.empty();
-
         Optional<BerTlv> respondingField = BerCodec.findOptional(fields, TAG_CLASS_CONTEXT, 5);
         if (respondingField.isPresent()) {
             if (isWrappedDirectoryString(respondingField.get())) {
                 respondingAeTitle = Optional.of(decodeDirectoryString(respondingField.get()));
             } else {
-                respondingAeQualifier = Optional.of(
-                    new AcseModels.AeQualifier(decodeNonNegativeInteger(respondingField.get()))
-                );
+                respondingAeQualifier = Optional.of(new AcseModels.AeQualifier(decodeNonNegativeInteger(respondingField.get())));
             }
         }
-
         Optional<byte[]> userInfo =
-            BerCodec.findOptional(fields, TAG_CLASS_CONTEXT, 30)
-                .map(this::decodeUserInformation);
-
+            BerCodec.findOptional(fields, TAG_CLASS_CONTEXT, 30).map(this::decodeUserInformation);
         PresentationContextParseResult presentationContexts =
-            BerCodec.findOptional(fields, TAG_CLASS_CONTEXT, 29)
-                .map(this::decodePresentationContexts)
+            BerCodec.findOptional(fields, TAG_CLASS_CONTEXT, 29).map(this::decodePresentationContexts)
                 .orElseGet(PresentationContextParseResult::empty);
-
-        Optional<String> appCtx =
-            BerCodec.findOptional(fields, TAG_CLASS_CONTEXT, 1)
-                .map(this::decodeOid);
-
-        return new AcseModels.AAREApdu(
-            appCtx,
-            result == 0,
-            diagnostic,
-            rsd,
-            respondingApTitle,
-            respondingAeQualifier,
-            respondingAeTitle,
-            userInfo,
-            presentationContexts.abstractSyntaxOids(),
-            presentationContexts.acceptedContextIdentifiers()
-        );
+        Optional<String> appCtx = BerCodec.findOptional(fields, TAG_CLASS_CONTEXT, 1).map(this::decodeOid);
+        return new AcseModels.AAREApdu(appCtx, result == 0, diagnostic, rsd, respondingApTitle, respondingAeQualifier,
+            respondingAeTitle, userInfo, presentationContexts.abstractSyntaxOids(), presentationContexts.acceptedContextIdentifiers());
     }
     
     private AcseModels.ApTitle decodeApTitleField(BerTlv wrapped) {
-        if (wrapped == null || wrapped.tagClass() != TAG_CLASS_CONTEXT || !wrapped.constructed()) {
+        if (wrapped == null || wrapped.tagClass() != TAG_CLASS_CONTEXT || !wrapped.constructed())
             throw new IllegalArgumentException("ACSE AP-title must be explicit context-specific");
-        }
-
         byte[] inner = wrapped.value();
-        if (inner.length == 0) {
+        if (inner.length == 0)
             throw new IllegalArgumentException("ACSE AP-title is empty");
-        }
-
         try {
             BerTlv tlv = BerCodec.decodeSingle(inner);
-            if (tlv.isUniversal() && tlv.tagNumber() == 6) {
+            if (tlv.isUniversal() && tlv.tagNumber() == 6)
                 return AcseModels.ApTitle.fromOid(decodeOid(wrapped));
-            }
-        } catch (RuntimeException ignored) {
-        }
-
+        } catch (RuntimeException ignored) { }
         return AcseModels.ApTitle.fromRawBer(inner);
     }
 
     private byte[] encodeRlrq(AcseModels.RLRQApdu rlrq) {
         byte[] payload = rlrq.reason().map(v -> encodeGraphicString(0, v)).orElse(new byte[0]);
-        return BerCodec.encode(
-            new BerTlv(TAG_CLASS_APPLICATION, true, RLRQ_TAG, 0, payload.length, payload)
-        );
+        return BerCodec.encode(new BerTlv(TAG_CLASS_APPLICATION, true, RLRQ_TAG, 0, payload.length, payload));
     }
 
     private AcseModels.RLRQApdu decodeRlrq(byte[] payload) {
@@ -382,27 +289,20 @@ public class AcseAssociationProtocol {
 
     private byte[] encodeRlre(AcseModels.RLREApdu rlre) {
         byte[] payload = encodeResult(0, rlre.normal() ? 0 : 1);
-        return BerCodec.encode(
-            new BerTlv(TAG_CLASS_APPLICATION, true, RLRE_TAG, 0, payload.length, payload)
-        );
+        return BerCodec.encode(new BerTlv(TAG_CLASS_APPLICATION, true, RLRE_TAG, 0, payload.length, payload));
     }
 
     private AcseModels.RLREApdu decodeRlre(byte[] payload) {
         List<BerTlv> fields = BerCodec.decodeAll(payload);
-        int result = BerCodec.findOptional(fields, TAG_CLASS_CONTEXT, 0)
-            .map(this::decodeSmallInteger)
-            .orElse(0);
+        int result = BerCodec.findOptional(fields, TAG_CLASS_CONTEXT, 0).map(this::decodeSmallInteger).orElse(0);
         return new AcseModels.RLREApdu(result == 0);
     }
 
     private byte[] encodeAbrt(AcseModels.ABRTApdu abrt) {
         byte[] payload = concat(
             encodeGraphicString(0, abrt.source()),
-            abrt.diagnostic().map(v -> encodeGraphicString(1, v)).orElse(new byte[0])
-        );
-        return BerCodec.encode(
-            new BerTlv(TAG_CLASS_APPLICATION, true, ABRT_TAG, 0, payload.length, payload)
-        );
+            abrt.diagnostic().map(v -> encodeGraphicString(1, v)).orElse(new byte[0]));
+        return BerCodec.encode(new BerTlv(TAG_CLASS_APPLICATION, true, ABRT_TAG, 0, payload.length, payload));
     }
 
     private AcseModels.ABRTApdu decodeAbrt(byte[] payload) {
@@ -417,81 +317,54 @@ public class AcseAssociationProtocol {
 
     private byte[] encodeGraphicString(int tagNumber, String text) {
         byte[] textBytes = text.trim().getBytes(StandardCharsets.US_ASCII);
-        byte[] primitive = BerCodec.encode(
-            new BerTlv(TAG_CLASS_UNIVERSAL, false, 25, 0, textBytes.length, textBytes)
-        );
-        return BerCodec.encode(
-            new BerTlv(TAG_CLASS_CONTEXT, true, tagNumber, 0, primitive.length, primitive)
-        );
+        byte[] primitive = BerCodec.encode(new BerTlv(TAG_CLASS_UNIVERSAL, false, 25, 0, textBytes.length, textBytes));
+        return BerCodec.encode(new BerTlv(TAG_CLASS_CONTEXT, true, tagNumber, 0, primitive.length, primitive));
     }
 
     private String decodeGraphicString(BerTlv wrapped) {
         BerTlv graphicString = BerCodec.decodeSingle(wrapped.value());
-        if (!graphicString.isUniversal() || graphicString.tagNumber() != 25) {
-            throw new IllegalArgumentException(
-                "ACSE expected GraphicString inside field [" + wrapped.tagNumber() + "]"
-            );
-        }
+        if (!graphicString.isUniversal() || graphicString.tagNumber() != 25)
+            throw new IllegalArgumentException("ACSE expected GraphicString inside field [" + wrapped.tagNumber() + "]");
         return new String(graphicString.value(), StandardCharsets.US_ASCII);
     }
 
     private byte[] encodeOid(int tagNumber, String dottedOid) {
         byte[] oidEncoded = encodeOidValue(dottedOid);
-        byte[] oidTlv = BerCodec.encode(
-            new BerTlv(TAG_CLASS_UNIVERSAL, false, 6, 0, oidEncoded.length, oidEncoded)
-        );
-        return BerCodec.encode(
-            new BerTlv(TAG_CLASS_CONTEXT, true, tagNumber, 0, oidTlv.length, oidTlv)
-        );
+        byte[] oidTlv = BerCodec.encode(new BerTlv(TAG_CLASS_UNIVERSAL, false, 6, 0, oidEncoded.length, oidEncoded));
+        return BerCodec.encode(new BerTlv(TAG_CLASS_CONTEXT, true, tagNumber, 0, oidTlv.length, oidTlv));
     }
 
     private String decodeOid(BerTlv wrappedOid) {
         BerTlv oidTlv = BerCodec.decodeSingle(wrappedOid.value());
-        if (!oidTlv.isUniversal() || oidTlv.tagNumber() != 6) {
-            throw new IllegalArgumentException(
-                "ACSE expected OBJECT IDENTIFIER inside field [" + wrappedOid.tagNumber() + "]"
-            );
-        }
+        if (!oidTlv.isUniversal() || oidTlv.tagNumber() != 6)
+            throw new IllegalArgumentException("ACSE expected OBJECT IDENTIFIER inside field [" + wrappedOid.tagNumber() + "]");
         return decodeOidValue(oidTlv.value());
     }
 
     private byte[] encodeBitString(int tagNumber, int bits) {
-        byte[] bitString = BerCodec.encode(
-            new BerTlv(TAG_CLASS_UNIVERSAL, false, 3, 0, 2, new byte[] { 0x00, (byte) bits })
-        );
-        return BerCodec.encode(
-            new BerTlv(TAG_CLASS_CONTEXT, true, tagNumber, 0, bitString.length, bitString)
-        );
+        byte[] bitString = BerCodec.encode(new BerTlv(TAG_CLASS_UNIVERSAL, false, 3, 0, 2, new byte[] { 0x00, (byte) bits }));
+        return BerCodec.encode(new BerTlv(TAG_CLASS_CONTEXT, true, tagNumber, 0, bitString.length, bitString));
     }
 
     private byte[] encodeSmallInteger(int tagNumber, int value) {
-        if (value < 0) {
+        if (value < 0)
             throw new IllegalArgumentException("ACSE integer/ENUMERATED field must be non-negative");
-        }
         byte[] valueBytes = integerBytes(value);
-        return BerCodec.encode(
-            new BerTlv(TAG_CLASS_CONTEXT, false, tagNumber, 0, valueBytes.length, valueBytes)
-        );
+        return BerCodec.encode(new BerTlv(TAG_CLASS_CONTEXT, false, tagNumber, 0, valueBytes.length, valueBytes));
     }
 
     private byte[] encodeResult(int tagNumber, int value) {
-        if (value < 0) {
+        if (value < 0)
             throw new IllegalArgumentException("ACSE result must be non-negative");
-        }
-
         byte[] valueBytes = integerBytes(value);
-        return BerCodec.encode(
-            new BerTlv(TAG_CLASS_CONTEXT, false, tagNumber, 0, valueBytes.length, valueBytes)
-        );
+        return BerCodec.encode(new BerTlv(TAG_CLASS_CONTEXT, false, tagNumber, 0, valueBytes.length, valueBytes));
     }
 
     private int decodeSmallInteger(BerTlv encoded) {
         if (encoded.tagClass() == TAG_CLASS_CONTEXT && encoded.constructed()) {
             BerTlv inner = BerCodec.decodeSingle(encoded.value());
             if (inner.tagClass() != TAG_CLASS_UNIVERSAL || inner.tagNumber() != 2) {
-                throw new IllegalArgumentException(
-                    "ACSE expected INTEGER inside explicit field [" + encoded.tagNumber() + "]"
-                );
+                throw new IllegalArgumentException("ACSE expected INTEGER inside explicit field [" + encoded.tagNumber() + "]");
             }
             return decodeNonNegativeInteger(inner);
         }
@@ -499,66 +372,42 @@ public class AcseAssociationProtocol {
     }
 
     private int decodeNonNegativeInteger(BerTlv encoded) {
-        if (encoded.value().length == 0 || encoded.value().length > 4) {
+        if (encoded.value().length == 0 || encoded.value().length > 4)
             throw new IllegalArgumentException("ACSE integer/ENUMERATED field length is not supported");
-        }
-
         int value = 0;
         for (byte octet : encoded.value()) {
             value = (value << 8) | (octet & 0xFF);
         }
-
-        if ((encoded.value()[0] & 0x80) != 0) {
+        if ((encoded.value()[0] & 0x80) != 0)
             throw new IllegalArgumentException("ACSE integer/ENUMERATED field must be non-negative");
-        }
-
         return value;
     }
 
     private AcseModels.ResultSourceDiagnostic decodeResultSourceDiagnostic(BerTlv wrapped) {
         List<BerTlv> fields = BerCodec.decodeAll(wrapped.value());
-        if (fields.size() != 1) {
-            throw new IllegalArgumentException(
-                "ACSE result-source-diagnostic must contain exactly one CHOICE value"
-            );
-        }
-
+        if (fields.size() != 1)
+            throw new IllegalArgumentException("ACSE result-source-diagnostic must contain exactly one CHOICE value");
         BerTlv choice = fields.get(0);
-        if (choice.tagClass() != TAG_CLASS_CONTEXT || !choice.constructed()) {
-            throw new IllegalArgumentException(
-                "ACSE result-source-diagnostic choice must be explicit context-specific"
-            );
-        }
-
+        if (choice.tagClass() != TAG_CLASS_CONTEXT || !choice.constructed())
+            throw new IllegalArgumentException("ACSE result-source-diagnostic choice must be explicit context-specific");
         int source;
         if (choice.tagNumber() == 1) {
             source = 1;
         } else if (choice.tagNumber() == 2) {
             source = 2;
         } else {
-            throw new IllegalArgumentException(
-                "Unsupported ACSE result-source-diagnostic choice [" + choice.tagNumber() + "]"
-            );
+            throw new IllegalArgumentException("Unsupported ACSE result-source-diagnostic choice [" + choice.tagNumber() + "]");
         }
-
         BerTlv inner = BerCodec.decodeSingle(choice.value());
-        if (inner.tagClass() != TAG_CLASS_UNIVERSAL || inner.tagNumber() != 2) {
-            throw new IllegalArgumentException(
-                "ACSE result-source-diagnostic choice must contain INTEGER"
-            );
-        }
-
+        if (inner.tagClass() != TAG_CLASS_UNIVERSAL || inner.tagNumber() != 2)
+            throw new IllegalArgumentException("ACSE result-source-diagnostic choice must contain INTEGER");
         int diagnostic = decodeNonNegativeInteger(inner);
         return new AcseModels.ResultSourceDiagnostic(source, diagnostic);
     }
 
     private byte[] encodeOctetString(int tagNumber, byte[] value) {
-        byte[] octetString = BerCodec.encode(
-            new BerTlv(TAG_CLASS_UNIVERSAL, false, 4, 0, value.length, value)
-        );
-        return BerCodec.encode(
-            new BerTlv(TAG_CLASS_CONTEXT, true, tagNumber, 0, octetString.length, octetString)
-        );
+        byte[] octetString = BerCodec.encode(new BerTlv(TAG_CLASS_UNIVERSAL, false, 4, 0, value.length, value));
+        return BerCodec.encode(new BerTlv(TAG_CLASS_CONTEXT, true, tagNumber, 0, octetString.length, octetString));
     }
 
     private byte[] decodeAuthenticationValue(BerTlv wrapped) {
